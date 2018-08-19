@@ -7,6 +7,7 @@ module CSV
     )
 where
 
+import Data.Char (isSpace)
 import qualified Data.Text as T
 import Pipes
 import qualified Pipes.Prelude as P
@@ -35,8 +36,10 @@ splitLines txt = do
 
 -- | Parses a bit of text by commas into a row
 splitRow :: T.Text -> RawRow
-splitRow = RawRow . reverse . go []
+splitRow = RawRow . reverse . map removeWhitespace . go []
   where
+    removeWhitespace :: T.Text -> T.Text
+    removeWhitespace = T.takeWhile (not . isSpace) . T.dropWhile isSpace
     go :: [T.Text] -> T.Text -> [T.Text]
     go acc txt
       | T.null txt = acc
