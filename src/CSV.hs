@@ -5,10 +5,11 @@ module CSV
     ( splitLines
     , splitRow
     , rows
+    , RawRow (..)
     )
 where
 
-import Control.Monad (forever)
+import Control.Monad (unless, when)
 import Data.Char (isSpace)
 import qualified Data.Text as T
 import Pipes
@@ -25,15 +26,6 @@ splitWith c txt =
         rest = T.drop 1 that
     in (this, rest)
 
--- | Splits a string into individual lines
-splitLines :: Monad m => T.Text -> Producer T.Text m ()
-splitLines txt = do
-    let (this, rest) = splitWith '\n' txt
-    yield this
-    if T.null rest
-        then return ()
-        else splitLines rest
-
 -- | Parses a bit of text by commas into a row
 splitRow :: T.Text -> RawRow
 splitRow = RawRow . reverse . map removeWhitespace . go []
@@ -47,9 +39,27 @@ splitRow = RawRow . reverse . map removeWhitespace . go []
         let (this, rest) = splitWith ',' txt
         in go (this : acc) rest
 
+-- | Splits a string into individual lines
+splitLines :: Monad m => T.Text -> Producer T.Text m ()
+splitLines txt = do
+    let (this, rest) = splitWith '\n' txt
+    yield this
+    unless (T.null rest) (splitLines rest)
+
+
 liftPipe :: Monad m => (a -> b) -> Pipe a b m ()
 liftPipe f = forever (await >>= (yield . f))
 
 -- | Produces rows from a text formatted in csv
 rows :: Monad m => T.Text -> Producer RawRow m ()
 rows t = splitLines t >-> liftPipe splitRow
+
+
+-- | Returns indices of matching elements as they appear, starting from 1
+noteMatches :: Monad m => (a -> Bool) -> Pipe a Int m ()
+noteMatches cond = go 1
+  where
+    go n = do
+        x <- await
+        when (cond x) yield n
+        go (n + 1)
