@@ -4,9 +4,11 @@ This module contains functions related to parsing CSV files.
 module CSV
     ( splitLines
     , splitRow
+    , rows
     )
 where
 
+import Control.Monad (forever)
 import Data.Char (isSpace)
 import qualified Data.Text as T
 import Pipes
@@ -23,7 +25,6 @@ splitWith c txt =
         rest = T.drop 1 that
     in (this, rest)
 
-
 -- | Splits a string into individual lines
 splitLines :: Monad m => T.Text -> Producer T.Text m ()
 splitLines txt = do
@@ -32,7 +33,6 @@ splitLines txt = do
     if T.null rest
         then return ()
         else splitLines rest
-
 
 -- | Parses a bit of text by commas into a row
 splitRow :: T.Text -> RawRow
@@ -46,3 +46,10 @@ splitRow = RawRow . reverse . map removeWhitespace . go []
       | otherwise  =
         let (this, rest) = splitWith ',' txt
         in go (this : acc) rest
+
+liftPipe :: Monad m => (a -> b) -> Pipe a b m ()
+liftPipe f = forever (await >>= (yield . f))
+
+-- | Produces rows from a text formatted in csv
+rows :: Monad m => T.Text -> Producer RawRow m ()
+rows t = splitLines t >-> liftPipe splitRow
