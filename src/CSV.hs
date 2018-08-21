@@ -5,18 +5,17 @@ module CSV
     ( splitLines
     , splitRow
     , rows
-    , RawRow (..)
     )
 where
 
-import Control.Monad (unless, when)
+import Control.Monad (forever, unless, when)
 import Data.Char (isSpace)
 import qualified Data.Text as T
 import Pipes
 import qualified Pipes.Prelude as P
 
+import CSVSpec
 
-data RawRow = RawRow [T.Text] deriving (Eq, Show)
 
 
 -- | Splits a string into 2 parts on the first char it finds, skipping the char
@@ -56,10 +55,11 @@ rows t = splitLines t >-> liftPipe splitRow
 
 
 -- | Returns indices of matching elements as they appear, starting from 1
-noteMatches :: Monad m => (a -> Bool) -> Pipe a Int m ()
-noteMatches cond = go 1
+noteMismatches :: Monad m => CSVSpec -> Pipe RawRow (Int, Mismatch) m ()
+noteMismatches spec = go 1
   where
     go n = do
         x <- await
-        when (cond x) yield n
+        let mismatch = findMismatch spec x
+        unless (noMismatches mismatch) (yield (n, mismatch))
         go (n + 1)
