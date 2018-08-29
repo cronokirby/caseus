@@ -1,20 +1,25 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-|
 This module contains the types and functions related to checking CSV specs.
 -}
 module CSVSpec
     ( RawRow (..)
+    , CSVType(..)
     , CSVSpec(..)
     , MismatchedColumn(..)
-    , Mismatch
+    , Mismatch(..)
     , findMismatch
     , noMismatches
+    , rawSpec
+    , showMismatch
     )
 where
 
 import Data.Char (isDigit)
 import Data.Functor (($>))
-import Data.List (zipWith3)
+import Data.List (intersperse, zipWith3)
 import Data.Maybe (catMaybes)
+import Data.Monoid (mconcat)
 import Control.Monad (guard)
 import qualified Data.Text as T
 
@@ -52,6 +57,10 @@ data MismatchedColumn
 newtype Mismatch = Mismatch [MismatchedColumn] deriving (Show)
 
 
+rawSpec :: RawRow -> CSVSpec
+rawSpec (RawRow row) = CSVSpec (map typeText row)
+
+-- | Looks at a RawRow and reports mismatches according to a spec
 findMismatch :: CSVSpec -> RawRow -> Mismatch
 findMismatch (CSVSpec types) (RawRow row) =
     let rawTypes = map typeText row
@@ -61,3 +70,19 @@ findMismatch (CSVSpec types) (RawRow row) =
 
 noMismatches :: Mismatch -> Bool
 noMismatches (Mismatch l) = null l
+
+-- note: maybe make a prelude to this
+showText :: Show s => s -> T.Text
+showText = T.pack . show
+
+-- | Pretty prints a csv type
+showCSVType :: CSVType -> T.Text
+showCSVType CSVInteger = "Integer"
+showCSVType CSVString = "String"
+
+showMismatch :: Mismatch -> T.Text
+showMismatch (Mismatch cols) = mconcat . intersperse " | " $ map foo cols
+  where
+    foo :: MismatchedColumn -> T.Text
+    foo (MismatchedColumn i e m) =
+        showText i <> ": expected " <> showCSVType e <> ", got " <> showCSVType m

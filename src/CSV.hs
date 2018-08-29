@@ -2,20 +2,20 @@
 This module contains functions related to parsing CSV files.
 -}
 module CSV
-    ( splitLines
-    , splitRow
-    , rows
+    ( readLines
     )
 where
 
 import Control.Monad (forever, unless, when)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Char (isSpace)
-import qualified Data.Text as T
 import Pipes
+import System.IO (FilePath, Handle, hIsEOF)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Pipes.Prelude as P
 
 import CSVSpec
-
 
 
 -- | Splits a string into 2 parts on the first char it finds, skipping the char
@@ -38,23 +38,12 @@ splitRow = RawRow . reverse . map removeWhitespace . go []
         let (this, rest) = splitWith ',' txt
         in go (this : acc) rest
 
--- | Splits a string into individual lines
-splitLines :: Monad m => T.Text -> Producer T.Text m ()
-splitLines txt = do
-    let (this, rest) = splitWith '\n' txt
-    yield this
-    unless (T.null rest) (splitLines rest)
-
 
 liftPipe :: Monad m => (a -> b) -> Pipe a b m ()
 liftPipe f = forever (await >>= (yield . f))
 
--- | Produces rows from a text formatted in csv
-rows :: Monad m => T.Text -> Producer RawRow m ()
-rows t = splitLines t >-> liftPipe splitRow
 
-
--- | Returns indices of matching elements as they appear, starting from 1
+-- | Returns indices of mismatching elements as they appear, starting from 1
 noteMismatches :: Monad m => CSVSpec -> Pipe RawRow (Int, Mismatch) m ()
 noteMismatches spec = go 1
   where
@@ -63,3 +52,25 @@ noteMismatches spec = go 1
         let mismatch = findMismatch spec x
         unless (noMismatches mismatch) (yield (n, mismatch))
         go (n + 1)
+
+
+-- | Returns lines from a file
+readLines :: Handle -> Producer T.Text IO ()
+readLines h = do
+    isEOF <- liftIO (hIsEOF h)
+    unless isEOF $ do
+        line <- liftIO (T.hGetLine h)
+        yield line
+        readLines h
+    return ()
+
+
+-- | Uses the first line of a csv file as a template for which to judge the rest
+-- Receives in lines of text from upstream, assuming the first one is to be used as the template
+firstLineJudge :: Monad m => Pipe T.Text (Int, Mismatch) m ()
+firstLineJudge = liftPipe splitRow >-> judge
+  where
+    judge = do
+        firstRaw <- await
+        let spec = rawSpec firstRaw
+        noteMismatches spec
