@@ -11,7 +11,7 @@ module CSVSpec
     , findMismatch
     , noMismatches
     , rawSpec
-    , showMismatch
+    , showMismatchedRow
     )
 where
 
@@ -86,3 +86,6 @@ showMismatch (Mismatch cols) = mconcat . intersperse " | " $ map foo cols
     foo :: MismatchedColumn -> T.Text
     foo (MismatchedColumn i e m) =
         showText i <> ": expected " <> showCSVType e <> ", got " <> showCSVType m
+
+showMismatchedRow :: (Int, Mismatch) -> T.Text
+showMismatchedRow (i, m) = "Row " <> showText i <> "\n" <> showMismatch m

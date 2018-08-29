@@ -3,6 +3,7 @@ This module contains functions related to parsing CSV files.
 -}
 module CSV
     ( readLines
+    , firstLineJudge
     )
 where
 
@@ -67,8 +68,9 @@ readLines h = do
 
 -- | Uses the first line of a csv file as a template for which to judge the rest
 -- Receives in lines of text from upstream, assuming the first one is to be used as the template
-firstLineJudge :: Monad m => Pipe T.Text (Int, Mismatch) m ()
-firstLineJudge = liftPipe splitRow >-> judge
+-- produces commentary lines, ready to be printed.
+firstLineJudge :: Monad m => Pipe T.Text T.Text m ()
+firstLineJudge = liftPipe splitRow >-> judge >-> liftPipe showMismatchedRow
   where
     judge = do
         firstRaw <- await
