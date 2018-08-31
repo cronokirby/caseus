@@ -19,6 +19,7 @@ testCSVSpec = do
         it "parses everything else as Strings" $ do
             typeText "A3" `shouldBe` CSVString
             typeText "foo" `shouldBe` CSVString
+            typeText "" `shouldBe` CSVString
     describe "findMismatch" $ do
         it "should be able to skip ok indices" $ do
             let spec = CSVSpec [CSVInteger, CSVInteger, CSVInteger]
