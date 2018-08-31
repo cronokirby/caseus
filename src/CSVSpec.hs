@@ -8,6 +8,7 @@ module CSVSpec
     , CSVSpec(..)
     , MismatchedColumn(..)
     , Mismatch(..)
+    , typeText
     , findMismatch
     , noMismatches
     , rawSpec
@@ -51,10 +52,10 @@ data MismatchedColumn
     , expected :: CSVType -- ^ the type of element that should be there
     , mismatch :: CSVType -- ^ the type of element that is there
     }
-    deriving (Show)
+    deriving (Eq, Show)
 
 -- | Represents how a certain row mismatches the specification
-newtype Mismatch = Mismatch [MismatchedColumn] deriving (Show)
+newtype Mismatch = Mismatch [MismatchedColumn] deriving (Eq, Show)
 
 
 rawSpec :: RawRow -> CSVSpec
@@ -64,7 +65,7 @@ rawSpec (RawRow row) = CSVSpec (map typeText row)
 findMismatch :: CSVSpec -> RawRow -> Mismatch
 findMismatch (CSVSpec types) (RawRow row) =
     let rawTypes = map typeText row
-        makeMisMatch i t1 t2 = guard (t1 == t2) $> MismatchedColumn i t1 t2
+        makeMisMatch i t1 t2 = guard (t1 /= t2) $> MismatchedColumn i t1 t2
     in Mismatch . catMaybes $ zipWith3 makeMisMatch [1..] types rawTypes
 
 

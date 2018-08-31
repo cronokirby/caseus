@@ -4,6 +4,7 @@ This module contains functions related to parsing CSV files.
 module CSV
     ( readLines
     , firstLineJudge
+    , showMismatches
     )
 where
 
@@ -69,10 +70,14 @@ readLines h = do
 -- | Uses the first line of a csv file as a template for which to judge the rest
 -- Receives in lines of text from upstream, assuming the first one is to be used as the template
 -- produces commentary lines, ready to be printed.
-firstLineJudge :: Monad m => Pipe T.Text T.Text m ()
-firstLineJudge = liftPipe splitRow >-> judge >-> liftPipe showMismatchedRow
+firstLineJudge :: Monad m => Pipe T.Text (Int, Mismatch) m ()
+firstLineJudge = liftPipe splitRow >-> judge
   where
     judge = do
         firstRaw <- await
         let spec = rawSpec firstRaw
         noteMismatches spec
+
+-- | Takes in a row and a mismatch, and produces a text commentary
+showMismatches :: Monad m => Pipe (Int, Mismatch) T.Text m ()
+showMismatches = liftPipe showMismatchedRow

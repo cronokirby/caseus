@@ -16,4 +16,4 @@ mainFunc = do
     putStrLn "Enter a filename: "
     file <- getLine
     withFile file ReadMode $ \h -> runEffect $
-        for (readLines h >-> firstLineJudge) (liftIO . T.putStrLn)
+        for (readLines h >-> firstLineJudge >-> showMismatches) (liftIO . T.putStrLn)
