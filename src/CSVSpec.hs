@@ -33,8 +33,8 @@ data CSVType
 -- | Type a single column into a CSVType
 typeText :: T.Text -> CSVType
 typeText t
-  | T.all isDigit t = CSVInteger
-  | otherwise       = CSVString
+    | T.all isDigit t = CSVInteger
+    | otherwise       = CSVString
 
 
 -- | Represents a raw CSV Row

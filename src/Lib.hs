@@ -1,5 +1,5 @@
 module Lib
-    ( someFunc
+    ( mainFunc
     )
 where
 
@@ -11,8 +11,8 @@ import qualified Data.Text.IO as T
 import CSV
 
 
-someFunc :: IO ()
-someFunc = do
+mainFunc :: IO ()
+mainFunc = do
     putStrLn "Enter a filename: "
     file <- getLine
     withFile file ReadMode $ \h -> runEffect $
