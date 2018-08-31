@@ -55,7 +55,10 @@ data MismatchedColumn
     deriving (Eq, Show)
 
 -- | Represents how a certain row mismatches the specification
-newtype Mismatch = Mismatch [MismatchedColumn] deriving (Eq, Show)
+data Mismatch
+    = WrongColCount Int Int
+    | ColMismatch [MismatchedColumn]
+    deriving (Eq, Show)
 
 
 rawSpec :: RawRow -> CSVSpec
@@ -63,14 +66,16 @@ rawSpec (RawRow row) = CSVSpec (map typeText row)
 
 -- | Looks at a RawRow and reports mismatches according to a spec
 findMismatch :: CSVSpec -> RawRow -> Mismatch
-findMismatch (CSVSpec types) (RawRow row) =
-    let rawTypes = map typeText row
-        makeMisMatch i t1 t2 = guard (t1 /= t2) $> MismatchedColumn i t1 t2
-    in Mismatch . catMaybes $ zipWith3 makeMisMatch [1..] types rawTypes
-
+findMismatch (CSVSpec types) (RawRow row)
+    | length types /= length row = WrongColCount (length types) (length row)
+    | otherwise =
+        let rawTypes = map typeText row
+            makeMisMatch i t1 t2 = guard (t1 /= t2) $> MismatchedColumn i t1 t2
+        in ColMismatch . catMaybes $ zipWith3 makeMisMatch [1..] types rawTypes
 
 noMismatches :: Mismatch -> Bool
-noMismatches (Mismatch l) = null l
+noMismatches (WrongColCount _ _) = False
+noMismatches (ColMismatch l)     = null l
 
 -- note: maybe make a prelude to this
 showText :: Show s => s -> T.Text
@@ -79,10 +84,12 @@ showText = T.pack . show
 -- | Pretty prints a csv type
 showCSVType :: CSVType -> T.Text
 showCSVType CSVInteger = "Integer"
-showCSVType CSVString = "String"
+showCSVType CSVString  = "String"
 
 showMismatch :: Mismatch -> T.Text
-showMismatch (Mismatch cols) = mconcat . intersperse " | " $ map foo cols
+showMismatch (WrongColCount e f) =
+    " expected " <> showText e <> " rows, instead of " <> showText f
+showMismatch (ColMismatch cols) = mconcat . intersperse " | " $ map foo cols
   where
     foo :: MismatchedColumn -> T.Text
     foo (MismatchedColumn i e m) =

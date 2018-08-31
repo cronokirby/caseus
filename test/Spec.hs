@@ -24,7 +24,10 @@ testCSVSpec = do
             let spec = CSVSpec [CSVInteger, CSVInteger, CSVInteger]
                 mismatch i = MismatchedColumn i CSVInteger CSVString
             findMismatch spec (RawRow ["A", "3", "A"])
-                `shouldBe` Mismatch [mismatch 1, mismatch 3]
+                `shouldBe` ColMismatch [mismatch 1, mismatch 3]
+        it "should report mismatched row counts" $ do
+            let spec = CSVSpec [CSVInteger, CSVInteger]
+            findMismatch spec (RawRow [""]) `shouldBe` WrongColCount 2 1
 
 
 testCSV = do
