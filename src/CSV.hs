@@ -2,9 +2,10 @@
 This module contains functions related to parsing CSV files.
 -}
 module CSV
-    ( readLines
-    , firstLineJudge
+    ( firstLineJudge
     , showMismatches
+    , splitRow
+    , readLines
     )
 where
 

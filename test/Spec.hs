@@ -1,11 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 import Test.Hspec
 
+import CSV
 import CSVSpec
+
 
 main :: IO ()
 main = hspec $ do
     testCSVSpec
+    testCSV
 
 
 testCSVSpec = do
@@ -22,3 +25,12 @@ testCSVSpec = do
                 mismatch i = MismatchedColumn i CSVInteger CSVString
             findMismatch spec (RawRow ["A", "3", "A"])
                 `shouldBe` Mismatch [mismatch 1, mismatch 3]
+
+
+testCSV = do
+    describe "splitRow" $ do
+        it "splits simple rows correctly" $ do
+            splitRow "1,2,3" `shouldBe` RawRow ["1", "2", "3"]
+            splitRow " 1 , 2 , 3 " `shouldBe` RawRow ["1", "2", "3"]
+        it "can handle one column lines" $ do
+            splitRow "1" `shouldBe` RawRow ["1"]
